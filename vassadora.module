@@ -1,0 +1,112 @@
+<?php
+
+define('VASSADORA_FULLTEXT_PATH', 'vassadora/bookreader_fulltext');
+
+/**
+ * Implements hook_preprocess_HOOK().
+ *
+ * Adds in some JS overrides.
+ */
+function vassadora_preprocess_islandora_internet_archive_bookreader(array &$variables) {
+  $mod_path = drupal_get_path('module', 'vassadora');
+  drupal_add_js("$mod_path/js/bookreader_overrides.js", array(
+    'weight' => 5,
+  ));
+  drupal_add_js(array(
+      'vassadora' => array(
+        'text_url' => url(VASSADORA_FULLTEXT_PATH),
+      ),
+    ), array(
+      'type' => 'setting',
+    )
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function vassadora_menu() {
+  $items = array();
+
+  $items[VASSADORA_FULLTEXT_PATH] = array(
+    'title' => 'Vassadora Fulltext Alternative Callback',
+    'page callback' => 'vassadora_fulltext_page_callback',
+    'access callback' => 'vassadora_fulltext_access_callback',
+    'access arguments' => array(),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Access callback.
+ */
+function vassadora_fulltext_access_callback() {
+  $to_return = FALSE;
+
+  if (isset($_GET['pids'])) {
+    $pids = (array)$_GET['pids'];
+    foreach ($pids as $pid) {
+      $object = islandora_object_load($pid);
+      if ($object) {
+        $to_return = islandora_user_access($object, array(FEDORA_VIEW_OBJECTS));
+
+        if (!$to_return) {
+          // If anything returns FALSE, return it...
+          break;
+        }
+      }
+    }
+  }
+
+  return $to_return;
+}
+
+/**
+ * Page callback to render the fulltext as desired.
+ */
+function vassadora_fulltext_page_callback() {
+  $output = '';
+  $pids = (array)$_GET['pids'];
+  $num_pids = count($pids);
+  if ($num_pids == 2) {
+    // Render two-page view.
+    $output = theme('vassadora_two_page_fulltext', array(
+      'pids' => $pids,
+    ));
+  }
+  elseif ($num_pids == 1) {
+    // Render one-page view.
+    $output = theme('vassadora_one_page_fulltext', array(
+      'pids' => $pids,
+    ));
+  }
+  else {
+    // Throw a 400 error of some kind.
+    drupal_not_found();
+  }
+  echo $output;
+  drupal_exit();
+}
+
+/**
+ * Implements hook_theme().
+ */
+function vassadora_theme() {
+  $items = array();
+
+  $base = array(
+    'file' => 'theme/theme.inc',
+    'variables' => array(
+      'pids' => NULL,
+      'pages' => array(),
+    ),
+    'template' => 'theme/vassadora-multiple-fulltexts',
+  );
+
+  $items['vassadora_one_page_fulltext'] = $base;
+  $items['vassadora_two_page_fulltext'] = $base;
+
+  return $items;
+}
