@@ -52,7 +52,7 @@ function vassadora_filter_and_classify_page_entries(array &$pages) {
         array(
           'label' => t('Not available'),
           'class' => '',
-          'text' => t('Sorry, but there was no full text/transcription datastream available.'),
+          'text' => t('Sorry, but there are no full text/transcription datastreams available.'),
         ),
       ),
     );
