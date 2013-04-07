@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ *   Hook implementations for Vassar.
+ */
+
 define('VASSADORA_FULLTEXT_PATH', 'vassadora/bookreader_fulltext');
 
 /**
