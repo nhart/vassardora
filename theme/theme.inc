@@ -36,7 +36,7 @@ function vassadora_filter_and_classify_page_entries(array &$pages) {
       // $num_sections == 0
       $page['sections'] = array(
         array(
-          'label' => t('Full text'),
+          'label' => t('Not available'),
           'class' => '',
           'text' => t('Sorry, but there was no full text available.'),
         ),

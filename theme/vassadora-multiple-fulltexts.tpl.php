@@ -21,7 +21,7 @@ foreach ($pages as $name => $info):
 <div class="vassadora_fulltext" id="vassadora_fulltext_<?php echo $name; ?>" <?php if ($first_page): $first_page = FALSE; else: ?>style="display: none;" <?php endif; ?>>
   <?php foreach ($info['sections'] as $section): ?>
   <div class="<?php echo $section['class']; ?>">
-    <span class="label"><?php echo $section['label']; ?></span>
+    <em class="label"><?php echo $section['label']; ?></em>
     <?php echo $section['text']; ?>
   </div>
   <?php endforeach; ?>

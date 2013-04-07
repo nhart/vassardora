@@ -17,6 +17,7 @@ function vassadora_preprocess_islandora_internet_archive_bookreader(array &$vari
   drupal_add_js("$mod_path/js/bookreader_overrides.js", array(
     'weight' => 5,
   ));
+  drupal_add_css("$mod_path/css/bookreader.css");
   drupal_add_js(array(
       'vassadora' => array(
         'text_url' => url(VASSADORA_FULLTEXT_PATH),
