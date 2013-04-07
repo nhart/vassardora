@@ -6,6 +6,46 @@
  */
 
 /**
+ * Filter and classify the sections of page entries.
+ *
+ * @param array $pages
+ *   The array of pages, as used in the related preprocess functions.
+ *
+ * @see template_preprocess_vassadora_one_page_fulltext()
+ * @see template_preprocess_vassadora_two_page_fulltext()
+ */
+function vassadora_filter_and_classify_page_entries(array &$pages) {
+  foreach ($pages as &$page) {
+    $page['sections'] = array_values(array_filter($page['sections'], function($element) {
+      return $element['text'];
+    }));
+
+    $num_sections = count($page['sections']);
+    if ($num_sections > 1) {
+      foreach ($page['sections'] as $index => &$section) {
+        $section['class'] = 'text' . ((($index & 1) == 0)?
+          'Left':
+          'Right');
+      }
+    }
+    elseif ($num_sections == 1) {
+      // Need a class to avoid strict warnings.
+      $page['sections'][0]['class'] = '';
+    }
+    else {
+      // $num_sections == 0
+      $page['sections'] = array(
+        array(
+          'label' => t('Full text'),
+          'class' => '',
+          'text' => t('Sorry, but there was no full text available.'),
+        ),
+      );
+    }
+  }
+}
+
+/**
  * Implements template_preprocess_HOOK().
  */
 function template_preprocess_vassadora_one_page_fulltext(array &$vars) {
@@ -17,20 +57,20 @@ function template_preprocess_vassadora_one_page_fulltext(array &$vars) {
     'sections' => array(
       array(
         'label' => t('English'),
-        'class' => 'textLeft',
         'text' => (isset($object['TRANSCRIPTION_ENG'])?
           $object['TRANSCRIPTION_ENG']->content:
-          t('No English transcription exists for this page.')),
+          FALSE),
       ),
       array(
         'label' => t('German'),
-        'class' => 'textRight',
         'text' => (isset($object['TRANSCRIPTION_GER'])?
           $object['TRANSCRIPTION_GER']->content:
-          t('No German transcription exists for this page.')),
+          FALSE),
       ),
     ),
   );
+
+  vassadora_filter_and_classify_page_entries($vars['pages']);
 }
 
 /**
@@ -80,4 +120,7 @@ function template_preprocess_vassadora_two_page_fulltext(array &$vars) {
       ),
     ),
   );
+
+  vassadora_filter_and_classify_page_entries($vars['pages']);
 }
+
