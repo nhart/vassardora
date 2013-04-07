@@ -16,21 +16,13 @@
  */
 function vassadora_filter_and_classify_page_entries(array &$pages) {
   foreach ($pages as &$page) {
+    // Filter out sections missing text.
     $page['sections'] = array_values(array_filter($page['sections'], function($element) {
       return $element['text'];
     }));
 
     $num_sections = count($page['sections']);
-    if ($num_sections == 0) {
-      $page['sections'] = array(
-        array(
-          'label' => t('Not available'),
-          'class' => '',
-          'text' => t('Sorry, but there was no full text available.'),
-        ),
-      );
-    }
-    else {
+    if ($num_sections > 0) {
       foreach ($page['sections'] as &$section) {
         $section['text'] = filter_xss($section['text']);
       }
@@ -48,6 +40,23 @@ function vassadora_filter_and_classify_page_entries(array &$pages) {
       }
     }
   }
+
+  // Filter out "pages" without sections.
+  $pages = array_filter($pages, function ($element) {
+    return (count($element['sections']) > 0);
+  });
+  if (count($pages) == 0) {
+    $pages['no_text'] = array(
+      'label' => t('N/A'),
+      'sections' => array(
+        array(
+          'label' => t('Not available'),
+          'class' => '',
+          'text' => t('Sorry, but there was no full text/transcription datastream available.'),
+        ),
+      ),
+    );
+  }
 }
 
 /**
@@ -57,8 +66,30 @@ function template_preprocess_vassadora_one_page_fulltext(array &$vars) {
   $object = islandora_object_load(reset($vars['pids']));
 
   // Add a single "page" with section for each language.
+  $vars['pages']['english'] = array(
+    'label' => t('English'),
+    'sections' => array(
+      array(
+        'label' => $object->label,
+        'text' => (isset($object['TRANSCRIPTION_ENG'])?
+          $object['TRANSCRIPTION_ENG']->content:
+          FALSE),
+      ),
+    ),
+  );
+  $vars['pages']['german'] = array(
+    'label' => t('German'),
+    'sections' => array(
+      array(
+        'label' => $object->label,
+        'text' => (isset($object['TRANSCRIPTION_GER'])?
+          $object['TRANSCRIPTION_GER']->content:
+          FALSE),
+      ),
+    ),
+  );
   $vars['pages']['full_text'] = array(
-    'label' => t('Full Text'),
+    'label' => t('Side-by-side'),
     'sections' => array(
       array(
         'label' => t('English'),
@@ -92,17 +123,15 @@ function template_preprocess_vassadora_two_page_fulltext(array &$vars) {
     'sections' => array(
       array(
         'label' => t('Left'),
-        'class' => 'textLeft',
         'text' => (isset($left_object['TRANSCRIPTION_ENG'])?
           $left_object['TRANSCRIPTION_ENG']->content:
-          t('No English transcription exists for this page.')),
+          FALSE),
       ),
       array(
         'label' => t('Right'),
-        'class' => 'textRight',
         'text' => (isset($right_object['TRANSCRIPTION_ENG'])?
           $right_object['TRANSCRIPTION_ENG']->content:
-          t('No English transcription exists for this page.')),
+          FALSE),
       ),
     ),
   );
@@ -111,17 +140,15 @@ function template_preprocess_vassadora_two_page_fulltext(array &$vars) {
     'sections' => array(
       array(
         'label' => t('Left'),
-        'class' => 'textLeft',
         'text' => (isset($left_object['TRANSCRIPTION_GER'])?
           $left_object['TRANSCRIPTION_GER']->content:
-          t('No German transcription exists for this page.')),
+          FALSE),
       ),
       array(
         'label' => t('Right'),
-        'class' => 'textRight',
         'text' => (isset($right_object['TRANSCRIPTION_GER'])?
           $right_object['TRANSCRIPTION_GER']->content:
-          t('No German transcription exists for this page.')),
+          FALSE),
       ),
     ),
   );
