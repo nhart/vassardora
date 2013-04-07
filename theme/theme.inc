@@ -21,19 +21,7 @@ function vassadora_filter_and_classify_page_entries(array &$pages) {
     }));
 
     $num_sections = count($page['sections']);
-    if ($num_sections > 1) {
-      foreach ($page['sections'] as $index => &$section) {
-        $section['class'] = 'text' . ((($index & 1) == 0)?
-          'Left':
-          'Right');
-      }
-    }
-    elseif ($num_sections == 1) {
-      // Need a class to avoid strict warnings.
-      $page['sections'][0]['class'] = '';
-    }
-    else {
-      // $num_sections == 0
+    if ($num_sections == 0) {
       $page['sections'] = array(
         array(
           'label' => t('Not available'),
@@ -41,6 +29,23 @@ function vassadora_filter_and_classify_page_entries(array &$pages) {
           'text' => t('Sorry, but there was no full text available.'),
         ),
       );
+    }
+    else {
+      foreach ($page['sections'] as &$section) {
+        $section['text'] = filter_xss($section['text']);
+      }
+
+      if ($num_sections > 1) {
+        foreach ($page['sections'] as $index => &$section) {
+          $section['class'] = 'text' . ((($index & 1) == 0)?
+            'Left':
+            'Right');
+        }
+      }
+      elseif ($num_sections == 1) {
+        // Need a class to avoid strict warnings.
+        $page['sections'][0]['class'] = '';
+      }
     }
   }
 }
