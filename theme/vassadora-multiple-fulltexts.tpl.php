@@ -1,11 +1,11 @@
 <?php
-  /**
-   * @file
-   *   Template for the full-text override for Vassar.
-   */
+/**
+ * @file
+ *   Template for the full-text override for Vassar.
+ */
 
-  // XXX: Use of "tabs primary" is a quick hack to get 'em showing in a
-  // somewhat nice manner.
+// XXX: Use of "tabs primary" is a quick hack to get 'em showing in a
+// somewhat nice manner.
 ?>
 <ul class="tabs primary">
   <?php foreach ($pages as $name => $info):?>
@@ -13,10 +13,11 @@
   <?php endforeach; ?>
 </ul>
 <?php
-  // Keep track if this is the first page, as we want to render the first
-  // page, and leave the others hidden.
-  $first_page = TRUE;
-  foreach ($pages as $name => $info): ?>
+// Keep track if this is the first page, as we want to render the first
+// page, and leave the others hidden.
+$first_page = TRUE;
+foreach ($pages as $name => $info):
+?>
 <div class="vassadora_fulltext" id="vassadora_fulltext_<?php echo $name; ?>" <?php if ($first_page): $first_page = FALSE; else: ?>style="display: none;" <?php endif; ?>>
   <?php foreach ($info['sections'] as $section): ?>
   <div class="<?php echo $section['class']; ?>">
