@@ -221,7 +221,7 @@ function vassadora_theme() {
  * @param AbstractObject $object
  *   The object from which we want to get fulltext.
  * @param string $datastream_id
- *   The most datastream to try first.
+ *   The datastream from which to attempt to grab fulltext.
  *
  * @return string|bool
  *   A string containing the fulltext, or FALSE if there was none to get.
