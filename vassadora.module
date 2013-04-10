@@ -78,8 +78,6 @@ function vassadora_fulltext_page_callback() {
   $num_pids = count($pids);
   if ($num_pids == 2) {
     // Render two-page view.
-
-    // Add two "pages", one with each language.
     $objects = array_filter(array_map('islandora_object_load', $pids));
     list($left_object, $right_object) = $objects;
 
@@ -133,7 +131,6 @@ function vassadora_fulltext_page_callback() {
   }
   elseif ($num_pids == 1) {
     // Render one-page view.
-
     $object = islandora_object_load(reset($pids));
 
     $pages = array(
