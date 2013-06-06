@@ -240,7 +240,6 @@ function vassardora_theme() {
  *   A string containing the fulltext, or FALSE if there was none to get.
  */
 function vassardora_load_fulltext(AbstractObject $object, $datastream_id) {
-  dsm($object);
   if (isset($object[$datastream_id])) {
     return "<pre>" . htmlspecialchars($object[$datastream_id]->content) . "</pre>";
   }
