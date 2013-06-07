@@ -49,7 +49,7 @@ function vassardora_menu() {
     'page arguments' => array('vassardora_admin_form'),
     'access arguments' => array('administer site configuration'),
     'file' => 'includes/admin.form.inc',
-    'type'=> MENU_NORMAL_ITEM,
+    'type' => MENU_NORMAL_ITEM,
   );
   $items['islandora/object/%islandora_object/Metadata'] = array(
     'title' => 'Metadata',
@@ -90,7 +90,7 @@ function vassardora_access_metadata(AbstractObject $object) {
 function vassardora_mods_view(AbstractObject $object) {
   $block = array();
   $block['content'] = array(
-      '#markup' => vassardora_mods_markup($object),
+    '#markup' => vassardora_mods_markup($object),
   );
   return $block;
 }
@@ -106,7 +106,7 @@ function vassardora_mods_view(AbstractObject $object) {
  */
 function vassardora_mods_markup(AbstractObject $object) {
   $form = array(
-      'collection_metadata' => array(),
+    'collection_metadata' => array(),
   );
   if (isset($object['MODS'])) {
     $content = $object['MODS']->content;
@@ -123,12 +123,12 @@ function vassardora_mods_markup(AbstractObject $object) {
 function vassardora_islandora_xml_form_builder_forms() {
   $module_path = drupal_get_path('module', 'vassardora');
   return array(
-      'Islandora Book MODS Form' => array(
-          'form_file' => "$module_path/xml/book_form_mods.xml",
-      ),
-      'Islandora Book MODS Read Only' => array(
-          'form_file' => "$module_path/xml/book_form_mods_read_only.xml",
-      ),
+    'Islandora Book MODS Form' => array(
+      'form_file' => "$module_path/xml/book_form_mods.xml",
+    ),
+    'Islandora Book MODS Read Only' => array(
+      'form_file' => "$module_path/xml/book_form_mods_read_only.xml",
+    ),
   );
 }
 
