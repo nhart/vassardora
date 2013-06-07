@@ -123,9 +123,6 @@ function vassardora_mods_markup(AbstractObject $object) {
 function vassardora_islandora_xml_form_builder_forms() {
   $module_path = drupal_get_path('module', 'vassardora');
   return array(
-    'Islandora Book MODS Form' => array(
-      'form_file' => "$module_path/xml/book_form_mods.xml",
-    ),
     'Islandora Book MODS Read Only' => array(
       'form_file' => "$module_path/xml/book_form_mods_read_only.xml",
     ),
