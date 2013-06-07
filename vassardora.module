@@ -319,7 +319,7 @@ function vassardora_theme() {
  */
 function vassardora_load_fulltext(AbstractObject $object, $datastream_id) {
   if (isset($object[$datastream_id])) {
-    return "<pre>" . htmlspecialchars($object[$datastream_id]->content) . "</pre>";
+    return htmlspecialchars($object[$datastream_id]->content);
   }
 
   return FALSE;

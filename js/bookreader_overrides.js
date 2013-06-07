@@ -7,8 +7,6 @@
   IslandoraBookReader.prototype.buildFullTextDiv = function(jFullTextDiv) {
     jFullTextDiv.find('.BRfloatMeta').height(600);
     jFullTextDiv.find('.BRfloatMeta').width(600);
-    console.log("In override function");
-    console.log("mode: " + this.mode);
     if (3 == this.mode) {
       jFullTextDiv.find('.BRfloatMeta').html('<div>' + Drupal.t('Full text not supported for this view.') + '</div>');
     }
@@ -21,7 +19,6 @@
         var hash_arr = this.oldLocationHash.split("/");
         var index = hash_arr[1];
         var pid = this.getPID(index-1);
-        console.log("pid: " + pid);
         request_data.pids.push(pid);
       }
       else if (this.mode == 2) {
