@@ -153,6 +153,7 @@ function vassardora_fulltext_access_callback() {
   return $to_return;
 }
 
+
 /**
  * Page callback to render the fulltext as desired.
  */
@@ -168,7 +169,7 @@ function vassardora_fulltext_page_callback() {
     // Render two-page view.
     $objects = array_filter(array_map('islandora_object_load', $pids));
     list($left_object, $right_object) = $objects;
-
+    dsm($object[$datastream_id]->content);
     $pages = array(
       'language_1' => array(
         'label' => t(variable_get('vassardora_language_one', 'Language 1')),
@@ -316,7 +317,7 @@ function vassardora_theme() {
  */
 function vassardora_load_fulltext(AbstractObject $object, $datastream_id) {
   if (isset($object[$datastream_id])) {
-    return htmlspecialchars($object[$datastream_id]->content);
+    return $object[$datastream_id]->content;
   }
 
   return FALSE;
