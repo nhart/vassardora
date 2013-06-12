@@ -169,7 +169,6 @@ function vassardora_fulltext_page_callback() {
     // Render two-page view.
     $objects = array_filter(array_map('islandora_object_load', $pids));
     list($left_object, $right_object) = $objects;
-    dsm($object[$datastream_id]->content);
     $pages = array(
       'language_1' => array(
         'label' => t(variable_get('vassardora_language_one', 'Language 1')),
