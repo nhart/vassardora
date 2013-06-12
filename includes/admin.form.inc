@@ -21,7 +21,7 @@ function vassardora_admin_form(array $form, array &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Language 1 Fulltext Datastream'),
     '#description' => t('The datastream ID into which is being used to hold the first language fulltext.'),
-    '#default_value' => variable_get('vassardora_english_fulltext_datastream', 'LANGUAGE_1'),
+    '#default_value' => variable_get('vassardora_language_one_fulltext_datastream', 'LANGUAGE_1'),
   );
   $form['vassardora_language_two'] = array(
     '#type' => 'textfield',
@@ -33,7 +33,7 @@ function vassardora_admin_form(array $form, array &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Language 2 Fulltext Datastream'),
     '#description' => t('The datastream ID into which is being used to hold the second language fulltext.'),
-    '#default_value' => variable_get('vassardora_german_fulltext_datastream', 'LANGUAGE_2'),
+    '#default_value' => variable_get('vassardora_language_two_fulltext_datastream', 'LANGUAGE_2'),
   );
   return system_settings_form($form);
 }
