@@ -52,7 +52,7 @@ function vassardora_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   $items['islandora/object/%islandora_object/Metadata'] = array(
-    'title' => 'Metadata',
+    'title' => 'Details', // jd changed 2013 07 08 to be consistent with other modules
     'page callback' => 'vassardora_mods_view',
     'page arguments' => array(2),
     'type' => MENU_LOCAL_TASK,
