@@ -5,4 +5,5 @@ version = 7.x-dev
 core = 7.x
 dependencies[] = islandora
 dependencies[] = islandora_internet_archive_bookreader
-
+dependencies[] = zip_importer
+files[] = includes/importer.inc
