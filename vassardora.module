@@ -169,7 +169,7 @@ function vassardora_fulltext_page_callback() {
     list($left_object, $right_object) = $objects;
     $pages = array(
       'language_1' => array(
-        'label' => tvariable_get('vassardora_language_one', 'Language 1'),
+        'label' => variable_get('vassardora_language_one', 'Language 1'),
         'sections' => array(
           array(
             'label' => t('Left'),
