@@ -2,12 +2,11 @@
 
 /**
  * @file
- * Defines the ZipBatchImporter.
+ * Defines the VassadoraZipBatchImporter.
  */
 
 /**
  * Zip file importer.
- * @author adam
  */
 class VassardoraZipBatchImporter extends ZipBatchImporter {
 
@@ -19,84 +18,58 @@ class VassardoraZipBatchImporter extends ZipBatchImporter {
    * @see IslandoraBatchImporter::getForm()
    */
   public static function getForm(array &$form_state) {
-    module_load_include('inc', 'xml_form_builder', 'includes/associations');
-    // Get the list of valid content models.
-    $parent = islandora_object_load($form_state['storage']['parent_pid']);
+    $form = parent::getForm($form_state);
 
-    $cm_options = array();
-    $ns_options = array(
-      NULL => t('Default namespace'),
-    );
-    if (isset($parent['COLLECTION_POLICY'])) {
-      $policy_stream = $parent['COLLECTION_POLICY'];
-      $policy = new CollectionPolicy($policy_stream->content);
-
-      $cm_options = array();
-      $ns_options = array(NULL => t('Default namespace'));
-      foreach ($policy->getContentModels() as $pid => $info) {
-        $cm_options[$pid] = array('title' => $info['name']);
-
-        $cm_namespace = $info['namespace'];
-        if (!empty($cm_namespace)) {
-          $cm_namespace = $info['namespace'];
-          $cm_namespace = explode(':', $info['namespace']);
-          $namespace = trim($cm_namespace[0]);
-          $ns_options[$namespace] = $namespace;
-        }
-      }
+    // Reweight, so we can inject our element(s).
+    $weight = 0;
+    foreach (element_children($form['fs']) as $id) {
+      $form['fs'][$id]['#weight'] = $weight++;
     }
 
-    return array(
-      'fs' => array(
-        '#type' => 'fieldset',
-        '#title' => t('Zip Batch Importer'),
-        '#description' => t('Select the file containing the assets and metadata to import. Assets and metadata will be matched together based on the portion of the filename without the extension - e.g. my_file.xml and my_file.pdf would be combined into a single object.'),
-        'file' => array(
-          '#type' => 'managed_file',
-          '#title' => t('Zip file containing files to import'),
-          '#upload_validators' => array(
-            'file_validate_extensions' => array('zip'),
+    module_load_include('inc', 'xml_form_builder', 'includes/associations');
+
+    $form['fs']['tfs'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('XML Datastream Transform'),
+      '#description' => t('The XSLT to use when transforming ingested XML.'),
+      '#weight' => 1.1,
+      'xslt' => array(
+        '#type' => 'select',
+        '#title' => t('XSL Transform'),
+        '#options' => array_flip(xml_form_builder_get_transforms()),
+        '#default_value' => 'No Transform',
+        '#description' => t("An XSL transform for setting the Fedora object's Dublin Core metadata datastream."),
+      ),
+      'target_dsid' => array(
+        '#title' => t('Datastream ID'),
+        '#type' => 'textfield',
+        '#description' => t('Datastream ID for transformed XML'),
+        '#states' => array(
+          'invisible' => array(
+            ':input[name="xslt"]' => array('value' => 'No Transform'),
           ),
-        ),
-        'fs' => array(
-          '#type' => 'fieldset',
-          '#title' => t('Content Model'),
-          '#description' => t('The content model(s) to assign to the imported objects.'),
-          'content_model' => array(
-            '#type' => 'tableselect',
-            '#header' => array('title' => t('Name')),
-            '#multiple' => TRUE,
-            '#options' => $cm_options,
-          ),
-        ),
-        'tfs' => array(
-          '#type' => 'fieldset',
-          '#title' => t('XML Datastream Transform'),
-          '#description' => t('The XSLT to use when transforming ingested XML.'),
-          'xslt' => array(
-            '#type' => 'select',
-            '#title' => t('XSL Transform'),
-            '#options' => array_flip(xml_form_builder_get_transforms()),
-            '#default_value' => 'No Transform',
-            '#description' => t("An XSL transform for setting the Fedora object's Dublin Core metadata datastream."),
-          ),
-          'target_dsid' => array(
-            '#type' => 'textfield',
-            '#description' => t('Datastream ID for transformed XML'),
-          ),
-        ),
-        'namespace' => array(
-          '#type' => 'select',
-          '#title' => t('Object Namespace'),
-          '#description' => t('The namespace in which the imported objects will be created.'),
-          '#options' => $ns_options,
-        ),
-        'submit' => array(
-          '#type' => 'submit',
-          '#value' => t('Import'),
         ),
       ),
     );
+
+    return $form;
+  }
+
+  /**
+   * Determine if we're ready to run our batch process.
+   *
+   * @see IslandoraBatchImporter::readyForBatch()
+   */
+  public static function readyForBatch(array &$form_state) {
+    $parent_result = parent::readyForBatch($form_state);
+
+    module_load_include('inc', 'islandora', 'includes/utilities');
+    $transform_properly_defined = $form_state['values']['xslt'] == 'No Transform' || islandora_is_valid_dsid($form_state['values']['target_dsid']);
+    if (!$transform_properly_defined) {
+      form_set_error('target_dsid', t('A valid datastream must be given if a transform has been selected.'));
+    }
+
+    return $parent_result && $transform_properly_defined;
   }
 
   /**
@@ -105,25 +78,13 @@ class VassardoraZipBatchImporter extends ZipBatchImporter {
    * @see IslandoraBatchImporter::getBatchInfo()
    */
   public static function getBatchInfo(array &$form_state) {
-    // Load the file.
-    $file = file_load($form_state['values']['file']);
-
-    // Grab the content models.
-    // Cast to an array, in case there are none?
-    $content_models = array_filter((array) $form_state['values']['content_model']);
-
-    $info = array(
-      'file' => $file,
-      'pid_namespace' => $form_state['values']['namespace'],
-      'content_model' => $content_models,
-      'object_info' => static::getIngestInfo($file),
-      'processed_objects' => array(),
+    $info = parent::getBatchInfo($form_state);
+    $info += array(
       'transform' => $form_state['values']['xslt'],
       'target_dsid' => $form_state['values']['target_dsid'],
     );
     return $info;
   }
-
 }
 
 /**
@@ -132,28 +93,10 @@ class VassardoraZipBatchImporter extends ZipBatchImporter {
  * Actually does the heavy-lifting during the import.
  */
 class VassardoraZipBatchImportObject extends ZipBatchImportObject {
-
-  protected $mods;
-  protected static $MARC2MODS;
-  protected static $DC2MODS;
-
-  /**
-   * Constructor.
-   */
-  protected function __construct($source) {
-    parent::__construct($source);
-    $this->pidNamespace = $this->source['pid_namespace'];
-    $this->contentModel = (array) $this->source['content_model'];
-    $transform_path = drupal_get_path('module', 'zip_importer') . '/xsl';
-    self::$MARC2MODS = "$transform_path/MARC21slim2MODS3-4.xsl";
-    self::$DC2MODS = "$transform_path/simpleDC2MODS.xsl";
-    if (strtoupper($source['target_dsid']) == 'MODS') {
-      self::$DC2MODS = $source['transform'];
-    }
-  }
-
   /**
    * Get an item from the source.
+   *
+   * Overridden to inject a couple parameters...
    *
    * @see IslandoraImportObject::getOne()
    */
@@ -172,167 +115,124 @@ class VassardoraZipBatchImportObject extends ZipBatchImportObject {
   }
 
   /**
-   * Determine the datastream ID for the given file.
-   *
-   * Gets info from the DS-COMPOSITE-MODELs for the selected content models
-   * and attempts to match based on detected MIME-Types.
-   *
-   * @param string $name
-   *   A filename for which to determine a mimetype.
-   *
-   * @return array
-   *   An array containing two values:
-   *   - Either boolean FALSE or the datastream ID, as mapped in the
-   *     DS-COMPOSITE-MODELs of the selected object.
-   *   - A string containing the detected mimetype of the file.
-   */
-  protected function determineDSIDAndMimetype($name) {
-    module_load_include('inc', 'islandora', 'includes/utilities');
-    // Something like this would be nice to have...  Need a way to indicate
-    // primary assets, though...  Think about basic image, where the content
-    // model can contain "OBJ" image/jpeg, "TN" image/jpeg and so on...
-    static $mime_detect = NULL;
-    static $dsids = NULL;
-    $models = (array) $this->source['content_model'];
-
-    if ($mime_detect === NULL || $dsids === NULL) {
-      $mime_detect = new MimeDetect();
-      $dsids = islandora_get_datastreams_requirements_from_models($models);
-    }
-
-    $mimetype = $mime_detect->getMimetype($name);
-    $dsid = FALSE;
-    // Determine which stream this should be, Gather together all
-    // non optional datastream ids.
-    foreach ($dsids as $ds => $info) {
-      if (in_array($mimetype, $info['mime'])) {
-        // Remove optional DS by default.
-        if (!$info['optional']) {
-          $dsid[$ds] = $info;
-        }
-      }
-    }
-    // Fire off to the derivative hook to get the primary DSID's.
-    $hook_output = islandora_invoke_hook_list(ISLANDORA_DERVIATIVE_CREATION_HOOK, $models, array());
-    $source_dsid = FALSE;
-    foreach ($dsid as $arr_key => $key_val) {
-      foreach ($hook_output as $hook_key => $hook_value) {
-        if (isset($hook_output[$hook_key]['source_dsid']) && $hook_output[$hook_key]['source_dsid'] == $dsid[$arr_key]['id']) {
-          // We have a match on source object, this is it.
-          $source_dsid = $hook_output[$hook_key]['source_dsid'];
-        }
-      }
-    }
-    return array($source_dsid, $mimetype);
-  }
-
-  /**
    * Acquire base datastreams structure.
    *
    * @see IslandoraImportObject::getDatastreams()
    */
   protected function getDatastreams(&$errors = NULL, &$files = NULL) {
-    module_load_include('inc', 'islandora', 'includes/utilities');
     $to_return = parent::getDatastreams($errors, $files);
-
-    foreach ($this->source['object_info'] as $datastream => $name) {
-      // Determine which stream this should be...  Uses the first matching, as
-      // as received from the DC-COMPOSITE.
-      list($dsid, $mimetype) = $this->determineDSIDAndMimetype($name);
-
-      if (!$dsid) {
-        $errors[] = array(
-          t('The detected mimetype of %filename (@mime) is not supported by any of the selected content models.'),
-          array(
-            '@mime' => $mimetype,
-            '%filename' => $name,
-          ),
-          WATCHDOG_ERROR,
-        );
-        continue;
-      }
-
-      $zip = new ZipArchive();
-      $zip->open(drupal_realpath($this->source['file']->uri));
-      if ($zip->extractTo(drupal_realpath('public://'), $name)) {
-        $file = new stdClass();
-        $file->uri = "public://$name";
-        $files[] = $file;
-
-        $to_return += array(
-          $dsid => array(
-            'dsid' => $dsid,
-            'label' => "$dsid datastream",
-            'mimetype' => $mimetype,
-            'datastream_file' => file_create_url($file->uri),
-            'filename' => $name,
-            'control_group' => 'M',
-            'file' => $file,
-          ),
-        );
-      }
-      $zip->close();
-    }
-
-    // Correct the labels of the datastreams.
-    foreach ($to_return as &$datastream) {
-      $datastream['label'] = $this->getLabel($datastream['dsid'], $datastream);
-    }
-    $this->buildTransformedXml($to_return);
+    $this->buildTransformedXml($to_return, $files);
     return $to_return;
   }
 
   /**
-   * Create DC Stream.
+   * @var bool
+   *   Stop infinite recursion...
+   */
+  protected $dcAttempted = FALSE;
+
+  /**
+   * Inherits.
    *
+   * Generate MODS somehow.
    *
    * @return string
-   *   A string containing DC XML.
+   *   A string containing XML.
    */
-  public function getDC() {
-    if ($this->dc === NULL) {
-      $xsl = $this->source['target_dsid'] == 'DC' ? $this->source['transform'] : drupal_get_path('module', 'islandora_importer') . '/xsl/mods_to_dc.xsl';
-      $input = $this->source['target_dsid'] == 'DC' ? $this->getMODS() : $this->getXML();
-      $new_dc = static::runXSLTransform(array(
-            'xsl' => $xsl,
-            'input' => $input,
-      ));
-      if ($new_dc) {
-        $this->dc = $new_dc;
+  public function getMODS() {
+    if ($this->mods === NULL && $this->source['transform'] != 'No Transform') {
+      if ($this->source['target_dsid'] == 'MODS') {
+        $this->mods = static::runXSLTransform(array(
+          'input' => $this->getXML(),
+          'xsl' => $this->source['transform'],
+        ));
+      }
+      else {
+        $xml = $this->getXML();
+        // Neither MODS or MARCXML (something we can convert to MODS), and we
+        // are to transform to DC...
+        if (!$this->dcAttempted && !($this->isMODS($xml) || $this->isMARC($xml)) && $this->source['target_dsid'] == 'DC') {
+          // Let's get the transformed DC, and transform it to MODS...
+          // ... this could possibly be better handled by making it call
+          // $this->getDC() in the parent code, instead of using the input XML.
+          // @see https://github.com/Islandora/islandora_importer/blob/967894c594feb11197afcf190ea9e773c384abfd/modules/zip_importer/includes/importer.inc#L350
+          $this->dcAttempted = TRUE;
+          $dc = $this->getDC();
+          if ($dc) {
+            $this->mods = static::runXSLTransform(array(
+              'input' => $dc,
+              'xsl' => self::$DC2MODS,
+            ));
+          }
+        }
       }
     }
-    return $this->dc;
+
+    return parent::getMODS();
+  }
+
+  /**
+   * Inherits.
+   *
+   * Generate DC somehow.
+   */
+  public function getDC() {
+    if ($this->dc === NULL && $this->source['transform'] != 'No Transform' && $this->source['target_dsid'] == 'DC') {
+      $this->dc = static::runXSLTransform(array(
+        'input' => $this->getXML(),
+        'xsl' => $this->source['transform'],
+      ));
+    }
+
+    return parent::getDC();
   }
 
   /**
    * Transforms XML as required and add to datastream array.
    */
-  protected function buildTransformedXml(&$to_return) {
-    // DC and MODS have already been altered.
-    if (in_array($this->source['target_dsid'], array('DC', 'MODS'))) {
+  protected function buildTransformedXml(&$to_return, &$files) {
+    if ($this->source['transform'] == 'No Transform' || in_array($this->source['target_dsid'], array('DC', 'MODS'))) {
+      // Do not run the transform if we do not have one to run... (or it has
+      // already been handled previously).
       return;
     }
-    foreach ($to_return as $datastream) {
-      if ($datastream['mimetype'] == 'text/xml') {
-        $input_xml = $datastream['datastream_file'];
-        break;
-      }
-    }
-    $new_datstream = static::runXSLTransform(array(
-          'xsl' => $this->source['transform'],
-          'input' => file_get_contents($input_xml),
+
+    $new_datastream = static::runXSLTransform(array(
+      'xsl' => $this->source['transform'],
+      'input' => $this->getXML(),
     ));
 
-    if ($new_datstream) {
-      $file_uri = file_create_filename('data', 'temporary://');
-      file_save_data($new_datstream, $file_uri);
+    if ($new_datastream) {
+      // Only drop the entry for the target if we're going to be creating a new
+      // one.
+      $to_return = array_filter($to_return, array($this, 'filterTarget'));
+
+      $file = file_save_data($new_datastream, 'temporary://');
+      $file->status = $file->status & ~FILE_STATUS_PERMANENT;
+      $file = file_save($file);
+      $files[] = $file;
+
       $to_return[] = array(
         'dsid' => $this->source['target_dsid'],
-        'label' => $this->source['target_dsid'],
+        'label' => "{$this->source['target_dsid']} Record",
         'mimetype' => 'text/xml',
         'control_group' => 'M',
-        'datastream_file' => $file_uri,
+        'datastream_file' => $file->uri,
       );
     }
+  }
+
+  /**
+   * Filter function; ensure target is not defined.
+   *
+   * @param array $datastream_definition
+   *   A datastream definition as provided by getDatastreams().
+   *
+   * @return bool
+   *   TRUE if the definition does not represent an existing target datastream;
+   *   otherwise, FALSE.
+   */
+  protected function filterTarget($datastream_definition) {
+    return $this->source['target_dsid'] != $datastream_definition['dsid'];
   }
 }
