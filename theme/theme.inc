@@ -29,7 +29,7 @@ function vassardora_filter_and_classify_page_entries(array &$pages) {
 
       if ($num_sections > 1) {
         foreach ($page['sections'] as $index => &$section) {
-          $section['class'] = 'text' . ((($index & 1) == 0)?
+          $section['class'] = 'text' . ((($index & 1) == 0) ?
             'Left' :
             'Right');
         }
