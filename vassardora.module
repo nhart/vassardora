@@ -321,3 +321,21 @@ function vassardora_load_fulltext(AbstractObject $object, $datastream_id) {
 
   return FALSE;
 }
+
+/* jd added */
+/**
+ * Implememts hook_islandora_solr_primary_display().
+ */
+function vassardora_islandora_solr_primary_display() {
+  return array(
+    'vassardora' => array(
+      'name' => t('Search results according to the Vassardora module'),
+      'module' => 'vassardora',
+      'file' => 'includes/solrPrintResults.inc',
+      'class' => 'VassardoraSolrPrimaryResults',
+      'function' => 'displayResults',
+      'description' => t('Search results modification'),
+      //'configuration' => 'path/to/configuration/page',
+    ),
+  );
+}
