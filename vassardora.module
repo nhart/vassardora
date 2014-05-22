@@ -345,7 +345,6 @@ function vassardora_form_islandora_importer_form_alter(array &$form, array &$for
  */
 function vassardora_xml_form_builder_get_transforms() {
   return array(
-    'Vassar DC to MODS' => 'sites/all/modules/vassardora/xml/dc_to_mods.xsl',
     'Vassar MODS to DC' => 'sites/all/modules/vassardora/xml/mods_to_dc.xsl',
   );
 }
