@@ -51,7 +51,7 @@ function vassardora_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   $items['islandora/object/%islandora_object/Metadata'] = array(
-    'title' => 'Metadata',
+    'title' => 'Details', // jd changed 2013 07 08 to be consistent with other modules
     'page callback' => 'vassardora_mods_view',
     'page arguments' => array(2),
     'type' => MENU_LOCAL_TASK,
@@ -320,6 +320,24 @@ function vassardora_load_fulltext(AbstractObject $object, $datastream_id) {
   return FALSE;
 }
 
+/* jd added */
+/**
+ * Implememts hook_islandora_solr_primary_display().
+ */
+function vassardora_islandora_solr_primary_display() {
+  return array(
+    'vassardora' => array(
+      'name' => t('Search results according to the Vassardora module'),
+      'module' => 'vassardora',
+      'file' => 'includes/solrPrintResults.inc',
+      'class' => 'VassardoraSolrPrimaryResults',
+      'function' => 'displayResults',
+      'description' => t('Search results modification'),
+      //'configuration' => 'path/to/configuration/page',
+    ),
+  );
+}
+
 /**
  * Implements hook_islandora_importer().
  */
@@ -348,3 +366,4 @@ function vassardora_xml_form_builder_get_transforms() {
     'Vassar MODS to DC' => 'sites/all/modules/vassardora/xml/mods_to_dc.xsl',
   );
 }
+
