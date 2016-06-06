@@ -66,13 +66,21 @@ function vassardora_strip_doc_type_batch_operation(&$context) {
   }
   $query_string = <<<EOQ
   PREFIX fm: <info:fedora/fedora-system:def/model#>
-  PREFIX fr: <info:fedora/fedora-system:def/relations-external#>
-  SELECT ?pid ?cd FROM <#ri>
+  SELECT DISTINCT ?pid ?cd
+  FROM <#ri>
   WHERE {
     ?pid fm:hasModel <info:fedora/islandora:pageCModel> ;
-      <info:fedora/fedora-system:def/model#createdDate> ?cd ;
-      <fedora-view:disseminates> [<fedora-view:disseminationType> <info:fedora/*/HOCR>].
-      $filter_cd
+       fm:createdDate ?cd ;
+       fm:state fm:Active ;
+       <fedora-view:disseminates> ?disseminates .
+    {
+      ?disseminates <fedora-view:disseminationType> <info:fedora/*/HOCR> .
+    } UNION {
+      ?disseminates <fedora-view:disseminationType> <info:fedora/*/RAW_HOCR> .
+    } UNION {
+      ?disseminates <fedora-view:disseminationType> <info:fedora/*/ENCODED_HOCR> .
+    }
+    $filter_cd
   }
   ORDER BY ?cd
 EOQ;
