@@ -16,6 +16,12 @@ function vassardora_drush_command() {
     'drupal dependencies' => array('vassardora', 'islandora'),
     'boostrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN,
   );
+
+  $items['vassardora_fix_pred'] = array(
+    'description' => t('Fix bad pred on page objects.'),
+    'drupal dependencies' => array('vassardora', 'islandora'),
+    'boostrap' => DRUSH_BOOTSTRAP_DRUPAL_LOGIN,
+  );
   return $items;
 }
 
@@ -24,6 +30,14 @@ function vassardora_drush_command() {
  */
 function drush_vassardora_strip_doc_type() {
   batch_set(vassardora_strip_doc_type_batch());
+  drush_backend_batch_process();
+}
+
+/**
+ * Command callback to fix page pred.
+ */
+function drush_vassardora_fix_pred() {
+  batch_set(vassardora_fix_page_pred_batch());
   drush_backend_batch_process();
 }
 
@@ -49,6 +63,28 @@ function vassardora_strip_doc_type_batch() {
   );
 }
 
+/**
+ * Constructs a batch used to update things via Drush.
+ *
+ * @return array
+ *   An array describing the batch to be executed.
+ */
+function vassardora_fix_page_pred_batch() {
+  return array(
+    'operations' => array(
+      array(
+        'vassardora_fix_page_pred_batch_operation',
+        array(),
+      ),
+    ),
+    'title' => dt('Fix page pred...'),
+    'init_message' => dt('Preparing to fix page pred.'),
+    'progress_message' => dt('Time elapsed: @elapsed <br/>Estimated time remaining @estimate.'),
+    'error_message' => dt('An error has occurred.'),
+    'file' => drupal_get_path('module', 'vassardora') . '/vassardora.drush.inc',
+  );
+}
+
 
 /**
  * Constructs and performs removing doc type from hoc batch operation.
@@ -66,7 +102,7 @@ function vassardora_strip_doc_type_batch_operation(&$context) {
   }
   $query_string = <<<EOQ
   PREFIX fm: <info:fedora/fedora-system:def/model#>
-  SELECT DISTINCT ?pid ?cd
+  SELECT ?pid ?cd
   FROM <#ri>
   WHERE {
     ?pid fm:hasModel <info:fedora/islandora:pageCModel> ;
@@ -115,6 +151,77 @@ LIMIT $update
         $object[$dsid]->content = preg_replace($doctype_regex, '', $object[$dsid]->content);
       }
     }
+    $sandbox['offset']++;
+  }
+  $context['finished'] = $sandbox['offset'] / $sandbox['total'];
+}
+
+
+/**
+ * Constructs and performs fix on page preds.
+ *
+ * @param array $context
+ *   The context of the Druapl batch.
+ */
+function vassardora_fix_page_pred_batch_operation(&$context) {
+  $sandbox = &$context['sandbox'];
+  $update = 10;
+  $filter_cd = '';
+  if (isset($sandbox['cd'])) {
+    $filter_cd = "FILTER(?cd > '{$sandbox['cd']}'^^xsd:dateTime)";
+  }
+  $query_string = <<<EOQ
+  PREFIX fm: <info:fedora/fedora-system:def/model#>
+  SELECT ?pid ?cd
+  FROM <#ri>
+  WHERE {
+    ?pid fm:hasModel <info:fedora/islandora:pageCModel> ;
+       fm:createdDate ?cd ;
+       fm:state fm:Active ;
+    $filter_cd
+  }
+  ORDER BY ?cd
+EOQ;
+
+  $connection = islandora_get_tuque_connection();
+  if (!isset($sandbox['offset'])) {
+    $query = $connection->repository->ri->countQuery($query_string, 'sparql');
+    $sandbox['offset'] = 0;
+    $sandbox['total'] = $query;
+    if ($sandbox['total'] === 0) {
+      return;
+    }
+  }
+
+  $context['message'] = dt('Processing results @start to @end.', array(
+    '@start' => $sandbox['offset'],
+    '@end' => min($sandbox['offset'] + $update, $sandbox['total']),
+  ));
+  $query_string .= "
+LIMIT $update
+";
+  $results = $connection->repository->ri->sparqlQuery($query_string);
+  if (empty($results)) {
+    $context['finished'] = 1;
+  }
+  foreach ($results as $result) {
+    $object = islandora_object_load($result['pid']['value']);
+    $sandbox['cd'] = $result['cd']['value'];
+    if ($object) {
+      $rels = $object->relationships->get();
+      foreach($rels as $key => $rel) {
+        $pred = $rel['object']['value'];
+        if (strpos($pred, 'inf:fedora') !== FALSE && $rel['predicate']['value'] == 'isPageOf') {
+          $parent_pid = str_replace('inf:fedora/', '', $pred);
+          $parent_object = islandora_object_load($parent_pid);
+          if ($parent_object) {
+            $object->relationships->remove($rel['predicate']['namespace'], $rel['predicate']['value'], NULL, FALSE);
+            $object->relationships->add($rel['predicate']['namespace'], $rel['predicate']['value'], $parent_object, FALSE);
+          }
+        }
+      }
+    }
+
     $sandbox['offset']++;
   }
   $context['finished'] = $sandbox['offset'] / $sandbox['total'];
